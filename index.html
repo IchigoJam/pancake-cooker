@@ -10,7 +10,7 @@ import { PANCAKE_PALETTE } from "https://ichigojam.github.io/ns-pancake/PANCAKE_
 import { getNearColor } from "https://ichigojam.github.io/ns-pancake/getNearColor.mjs";
 
 window.onload = async () => {
-	const cropCircle = (img) => {
+	const makePanCakeImage = (img) => {
 		const imgw = img.width;
 		const imgh = img.height;
 		const pw = 80;
@@ -88,7 +88,7 @@ window.onload = async () => {
 				throw "画像ファイルではありません";
 			}
 			const img = await waitImageFileRead(f.file);
-			const img2 = cropCircle(img);
+			const img2 = makePanCakeImage(img);
 			main.appendChild(img2);
 		} catch (e) {
 			main.innerHTML = "読み取り時にエラーが発生しました。<br>" + e;
