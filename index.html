@@ -1,0 +1,140 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>PanCake Cooker</title>
+<meta property="og:image" content="https://ichigojam.github.io/pancake-cooker/pancake-cooker.jpg">
+<script type="module">
+
+import { waitDropFiles } from "https://js.sabae.cc/waitDropFiles.js";
+import { waitImageFileRead } from "https://js.sabae.cc/waitImageFileRead.js";
+
+import { PANCAKE_PALETTE } from "https://ichigojam.github.io/ns-pancake/PANCAKE_PALETTE.mjs";
+import { getNearColor } from "https://ichigojam.github.io/ns-pancake/getNearColor.mjs";
+
+window.onload = async () => {
+	const cropCircle = (img) => {
+		const imgw = img.width;
+		const imgh = img.height;
+		const pw = 80;
+		const ph = 45;
+		const r = Math.max(imgw / pw, imgh / ph);
+		const canvas = document.createElement("canvas");
+		canvas.width = pw;
+		canvas.height = ph;
+		const g = canvas.getContext("2d");
+		const iw = imgw / r >> 0;
+		const ih = imgh / r >> 0;
+		const ox = (pw - iw) / 2;
+		const oy = (ph - ih) / 2;
+		console.log(ox, oy, iw, ih, imgw, imgh);
+		g.drawImage(img, 0, 0, imgw, imgh, ox, oy, iw, ih);
+		const pix = g.getImageData(0, 0, pw, ph);
+		//console.log(pix);
+		const idxs = [];
+		for (let i = 0; i < ph; i++) {
+			for (let j = 0; j < pw; j++) {
+				const n = j * 4 + i * (pw * 4);
+				const r = pix.data[n + 0];
+				const g = pix.data[n + 1];
+				const b = pix.data[n + 2];
+				const idx = getNearColor(PANCAKE_PALETTE, [r, g, b]);
+				const c = PANCAKE_PALETTE[idx];
+				pix.data[n + 0] = c[0];
+				pix.data[n + 1] = c[1];
+				pix.data[n + 2] = c[2];
+				pix.data[n + 3] = 0x255;
+				idxs.push(idx);
+			}
+		}
+
+		const fix = (n) => {
+			const s = n.toString(16).toUpperCase();
+			if (s.length == 1) {
+				return "0" + s;
+			}
+			return s;
+		}
+		const ss = [];
+		ss.push("?\"PC CLEAR 00");
+		for (let i = 0; i < ph; i += 8) {
+			for (let j = 0; j < pw; j += 8) {
+				const s = [];
+				for (let y = 0; y < 8; y++) {
+					for (let x = 0; x < 8; x++) {
+						const n = idxs[j + x + (i + y) * pw] || 0;
+						s.push(n.toString(16).toUpperCase());
+					}
+				}
+				ss.push("?\"PC STAMP " + fix(j) + " " + fix(i) + " 00 " + s.join(""));
+			}
+		}
+		g.putImageData(pix, 0, 0);
+
+		const ta = document.createElement("textarea");
+		ta.style.width = "100%";
+		ta.style.height = "5em";
+		ta.value = ss.join("\n");
+		main.appendChild(ta);
+
+		const data = canvas.toDataURL("image/png");
+//		const data = canvas.toDataURL("image/jpeg");
+//		debug(data);
+		const res = new Image();
+		res.src = data;
+		return res;
+	};
+
+	const convertFile = async (f) => {
+		try {
+			if (!f.type.match("image.*")) {
+				throw "画像ファイルではありません";
+			}
+			const img = await waitImageFileRead(f.file);
+			const img2 = cropCircle(img);
+			main.appendChild(img2);
+		} catch (e) {
+			main.innerHTML = "読み取り時にエラーが発生しました。<br>" + e;
+		}
+	};
+
+	for (;;) {
+		const files = await waitDropFiles(main);
+		for (const f of files) {
+			convertFile(f);
+		}
+	}
+};
+</script>
+<style>
+body {
+	text-align: center;
+}
+#main {
+	border: 2px solid black;
+	margin: 20px;
+	padding: 40px;
+	text-align: center;
+	color: gray;
+}
+#main img {
+	width: 100%;
+}
+#credit {
+	margin: 1.5em;
+}
+a {
+	color: gray !important;
+}
+</style>
+</head>
+<body>
+
+<h1>PanCake Cooker</h1>
+
+<div id="main">PanCake用データにしたい画像ファイルをドロップ！</div>
+
+
+<div id='credit'>
+APP: CC BY <a href=https://fukuno.jig.jp/3185>@taisukef</a> (<a href=https://taisukef.github.io/roundimg/>src on GitHub</a>)<br>
+</div></div>
+
+</body>
+</html>
